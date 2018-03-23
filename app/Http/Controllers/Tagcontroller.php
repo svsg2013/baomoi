@@ -1,0 +1,74 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Tag;
+use Datatables;
+
+class Tagcontroller extends Controller
+{
+    public function getList()
+    {
+    	return view('admin.tag.list');
+    }
+
+    public function postAdd(Request $request)
+    {
+    	if($request->ajax()){
+	    	$tag = new Tag();
+	    	$tag->name = $request->input('tag-name');
+	    	$tag->slug = $request->input('slug');
+	    	$tag->save();
+	        return 'ok';
+	    }
+    }
+
+    public function dataTable()
+    { 
+    	$model = Tag::query();
+    	$data= DataTables::eloquent($model)
+    			->addColumn('post_count', function(Tag $tag) {
+                    return $tag->posts->count() . ' bài';
+                })
+                ->addColumn('action', '
+                	<button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#show-update">
+                		<i class="fa fa-pencil-square-o" aria-hidden="true"></i> Sửa 
+                	</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-toggle="modal" data-target="#show-delete">
+                    	<i class="fa fa-trash" aria-hidden="true"></i> Xoá
+                    </button>')
+                ->make(true);
+    	return $data;
+    }
+
+    public function putUpdate(Request $request)
+    {
+   	if($request->ajax()){
+	    		$tag = Tag::find($request->input('id'));
+	    		if( $tag ) {
+	    			if( $request->input('tag-name') && $request->input('slug')){
+
+	    				$tag->name = $request->input('tag-name');
+	                    $tag->slug = $request->input('slug');
+	                    $tag->save();
+	                    return 'ok';
+	    			} else return 'Không được bỏ trống tên và đường dẫn.';
+	    		} else return 'Sai ID';
+	    	//}
+    	}
+    }
+
+    public function delete(Request $request)
+    {
+    	if($request->ajax()){
+    		$tag = Tag::find($request->input('id'));
+    		if($tag){
+                $tag->posts()->detach();
+                $tag->delete();
+                return 'ok';
+    		}
+    		else return 'Không tồn tại tag.';
+    	} else return 'err';
+    }
+}
